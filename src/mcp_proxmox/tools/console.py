@@ -31,9 +31,7 @@ def _resolve_running_qemu(client: ProxmoxClient, vmid: int, action: str) -> tupl
 
     guest_type = guest["type"]
     if guest_type != "qemu":
-        raise ToolError(
-            f"VMID {vmid} is an LXC container; {action} is only supported for QEMU VMs"
-        )
+        raise ToolError(f"VMID {vmid} is an LXC container; {action} is only supported for QEMU VMs")
 
     node = guest["node"]
     guest_name = guest.get("name", f"VMID {vmid}")

@@ -10,7 +10,6 @@ from proxmoxer import ProxmoxAPI  # type: ignore[import-untyped]
 
 from mcp_proxmox.config import ProxmoxConfig
 
-
 # --- QEMU sendkey key mapping ---
 # Maps human-readable key names to QEMU Monitor key codes.
 # Reference: https://qemu-project.gitlab.io/qemu/system/keys.html
@@ -48,9 +47,18 @@ _QEMU_KEY_MAP: dict[str, str] = {
     "left": "left",
     "right": "right",
     # Function keys
-    "f1": "f1", "f2": "f2", "f3": "f3", "f4": "f4",
-    "f5": "f5", "f6": "f6", "f7": "f7", "f8": "f8",
-    "f9": "f9", "f10": "f10", "f11": "f11", "f12": "f12",
+    "f1": "f1",
+    "f2": "f2",
+    "f3": "f3",
+    "f4": "f4",
+    "f5": "f5",
+    "f6": "f6",
+    "f7": "f7",
+    "f8": "f8",
+    "f9": "f9",
+    "f10": "f10",
+    "f11": "f11",
+    "f12": "f12",
     # Common combos (shortcuts)
     "ctrl-alt-delete": "ctrl-alt-delete",
     "ctrl-alt-f2": "ctrl-alt-f2",
@@ -415,14 +423,10 @@ class ProxmoxClient:
         ticket_port = int(proxy["port"])
         ticket = str(proxy["ticket"])
 
-        # 2. Authorize the websocket connection with the ticket
-        ws_info = cast(
-            dict[str, Any],
-            self.api.nodes(node)
-            .qemu(vmid)
-            .vncwebsocket.get(port=ticket_port, vncticket=ticket),
-        )
-        # ws_port is only informational here; we connect through pveproxy.
+        # 2. Authorize the websocket connection with the ticket. The response
+        #    only carries a user/subprotocol pair that is not needed here —
+        #    the actual tunnel goes through pveproxy on the API port.
+        self.api.nodes(node).qemu(vmid).vncwebsocket.get(port=ticket_port, vncticket=ticket)
 
         # 3. Connect to the tunnel via pveproxy (like noVNC does) and capture
         #    a full framebuffer as PNG.
@@ -431,9 +435,7 @@ class ProxmoxClient:
             f"/api2/json/nodes/{node}/qemu/{vmid}/vncwebsocket"
             f"?port={ticket_port_str}&vncticket={quote(ticket)}"
         )
-        auth_header = (
-            f"PVEAPIToken={self._config.token_id}={self._config.token_secret}"
-        )
+        auth_header = f"PVEAPIToken={self._config.token_id}={self._config.token_secret}"
         return capture_vnc_screenshot(
             host=self._config.host,
             ws_port=ticket_port,
